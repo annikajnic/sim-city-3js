@@ -15,19 +15,20 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 
 document.body.appendChild(renderer.domElement); //renderer.domElement;
 
-const geometry = new THREE.BoxGeometry();
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+geometry.translate(0, 0.5, 0);
 const material = new THREE.MeshBasicMaterial({ color: 0xffE00 });
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
 
-scene.add(new THREE.AmbientLight(0x404040));
+// scene.add(new THREE.AmbientLight(0x404040));
 
 camera.position.z = 5;
 
 function animate() {
     requestAnimationFrame(animate);
-    cube.rotation.x += 0.05;
-    cube.rotation.y += 0.05;
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.01;
     renderer.render(scene, camera);
 }
 
