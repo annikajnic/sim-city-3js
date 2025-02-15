@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { createCamera } from './camera';
 import { gameWindow } from './utils/constant';
+import { createAssetInstance } from './utils/assets';
 
 
 export function createScene() {
     // Intial setup
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x777777);
+    scene.background = new THREE.Color(0x87cefa);
 
     const camera = createCamera(gameWindow)
     const renderer = new THREE.WebGLRenderer();
@@ -16,26 +17,70 @@ export function createScene() {
     gameWindow.appendChild(renderer.domElement);
 
 
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selectedObject = undefined;
 
-    let meshes = []
+    let terrain = []
+    let buildings =[]
+
+    let onObjectSelected = undefined;
+
     function initiatize(city) {
         scene.clear();
-        meshes = [];
+        terrain = [];
+        buildings = [];
         for(let i = 0; i < city.size; i++) {
             const column = [];
             for(let j = 0; j < city.size; j++) {
-                // 1. load the mesh/3d object to corresponding to the tikle at (x,y)
-                // 2. add the mesh to the scene 
-                // 3. add the mesh to the meshes array
-                const geometry = new THREE.BoxGeometry(1, 1, 1); 
-                const material = new THREE.MeshBasicMaterial({ color: 0xffE00 });
-                const mesh = new THREE.Mesh(geometry, material);
-                mesh.position.set(i,0,j)
-            
+                const terrainId = city.data[i][j].terrainId
+                const mesh= createAssetInstance(terrainId, i,j);
                 scene.add(mesh)
+                column.push(mesh);
+               
             }
-            meshes.push(column);
+            terrain.push(column);
+            buildings.push([...Array(city.size)]);
+
+            setupLights();
         }
+    }
+
+    function update(city) {
+        for (let i = 0; i < city.size; i++) {
+            for (let j = 0; j < city.size; j++) {
+                const currentBuildingId = buildings[i][j]?.userData.id;
+                const newBuildingId = city.data[i][j].buildingId;
+
+                if(!newBuildingId && currentBuildingId) {
+                    scene.remove(buildings[i][j]);
+                    buildings[i][j] = undefined;
+                }
+
+                if(currentBuildingId !== newBuildingId) {
+
+                    scene.remove(buildings[i][j]);
+                    buildings[i][j] = createAssetInstance(newBuildingId, i,j);
+                    scene.add(buildings[i][j]);
+                }
+            }
+            
+        }
+    }
+
+    function setupLights() {
+        const lights =[new THREE.AmbientLight(0xffffff, 0.2),
+        new THREE.DirectionalLight(0xffffff, 0.3),
+        new THREE.DirectionalLight(0xffffff, 0.3),
+        new THREE.DirectionalLight(0xffffff, 0.3),];
+
+  
+        lights[1].position.set(0, 1, 0);
+        lights[2].position.set(1, 1, 0);
+        lights[3].position.set(0, 1, 1);
+
+        scene.add(...lights)
+
     }
 
     function draw() {
@@ -52,6 +97,24 @@ export function createScene() {
 
     function mouseDown(event) {
        camera.onMouseDown(event);
+
+       mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+       mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+
+       raycaster.setFromCamera(mouse, camera.camera);
+       const intersects = raycaster.intersectObjects(scene.children, true);
+       if (intersects.length > 0) {
+        if(selectedObject) {
+            selectedObject.material.emissive.setHex(0);
+        }
+           selectedObject = intersects[0].object;
+           selectedObject.material.emissive.setHex(0x555555);
+           console.log(selectedObject.userData);
+
+           if(this.onObjectSelected){
+               this.onObjectSelected(selectedObject);
+           }
+       }    
     }
 
     function mouseUp(event) {
@@ -62,5 +125,5 @@ export function createScene() {
         camera.onMouseMove(event);
     }
 
-    return { initiatize, start, stop, mouseDown, mouseUp, mouseMove };
+    return { onObjectSelected,initiatize, update, start, stop, mouseDown, mouseUp, mouseMove };
 }
