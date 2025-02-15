@@ -15,9 +15,15 @@
         <!-- <script type="module" src="/main.js"></script> -->
         <script type="module">
             import { createScene } from './src/scene.js';
+            import { createCity} from './src/utils/city.js';
              
             window.onload = () => {
-                window.scene = createScene();
+                const scene = createScene();
+                const city = createCity(8);
+                
+                scene.initiatize(city);
+                window.scene = scene;
+                
                 window.scene.start();
                 window.addEventListener('mousemove', window.scene.mouseMove);
                 window.addEventListener('mousedown', window.scene.mouseDown);
